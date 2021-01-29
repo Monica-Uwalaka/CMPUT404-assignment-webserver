@@ -76,83 +76,114 @@ class MyWebServer(socketserver.BaseRequestHandler):
         501: "Not Implemented",
     }
 
-    headers = {
-        "Connection: close",
-    }
-
-   
-
+    
     def status_line(self, status_code):
         reason = self.status_codes[status_code]
         status_line = 'HTTP/1.1 %s %s\r\n' % (status_code, reason)
 
         # convert str to bytes
-        return status_line.encode()
-
-    def response_headers(self, extra_headers=None):
-        """Returns headers (as bytes).
-        The `extra_headers` can be a dict for sending 
-        extra headers with the current response
-        """
-        headers_copy = self.headers.copy() # make a local copy of headers
-
-        if extra_headers:
-            headers_copy.update(extra_headers)
-
-        headers = ''
-
-        for h in headers_copy:
-            headers += '%s: %s\r\n' % (h, headers_copy[h])
-
-        return headers.encode() # convert str to bytes
+        return status_line
 
     
-
     def handle_GET(self, request):
 
-        path = request.request_uri.strip('/') # remove slash from URI
 
-        if not path:
-            # If path is empty, that means user is at the homepage
-            # so just serve index.html
-            status_line = self.status_line(200)
+        path = request.request_uri # remove slash from URI
+        path_arr =  request.request_uri.split("/")
+        print(path_arr)
+        print(path)
+        #check if path exists 
 
-            response = status_line + b"Connection: close"
+        if len(path_arr[1])> 0:
 
-            return response
+            if os.path.exists(path) :
+                
+                #check if it is a directory
+                if os.path.isdir(path):
+                    #do nothing
+                    if path.find("deep") == -1:
+                        #serve www files
+                        print("something")
+                        
+                    else: 
+                        print("Tring to serve the deep")
+                        #serve "www/deep"
+                        
+
+
+                    
+
+                #if path is a files instead
+                elif os.path.isfile(path):
+                    #check Mimetype
+                    status_line = self.status_line(200)
+                    content_type = mimetypes.guess_type(path)[0]
+            
+
+                    response = status_line + "Connection: close\r\n" f"Content-Type: {content_type} \r\n" + "\r\n"
+                    
+                    return(response.encode())
+                    
+                    
+                else:
+                    print("not a directory")
+                    #throw 404 error because file is not found/ cannot access this file
+
+            else:
+                content_type = mimetypes.guess_type(path)[0]
+                
+                if content_type == "text/html" or  content_type == "text/css":
+            
+                    not_found = "200 OK NOT FOUND!"
+                    status_line = f"HTTP/1.1 200 {not_found} \r\n"
+                    response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+                    return(response.encode())
+                else:
+                    not_found = "404 NOT FOUND!"
+                    status_line = f"HTTP/1.1 404 {not_found} \r\n"
+                    response = status_line + status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+                    return(response.encode())
+                    
+                    
+
+            #if path is a file
+
+
+        else:
+            not_found = "200 OK NOT FOUND!"
+            status_line = f"HTTP/1.1 200 {not_found} \r\n"
+            response = status_line + "Connection: close\r\n"  + "\r\n"
+            return(response.encode())
+
+
+            # #You cannot access these files
+            # #404 error
+            # content_type = mimetypes.guess_type(path)[0]
+            # if content_type == "text/html" or  content_type == "text/css":
+            #     not_found = "200 OK NOT FOUND!"
+            #     status_line = f"HTTP/1.1 200 {not_found} \r\n"
+            #     response = status_line + "Connection: close\r\n"  + "\r\n"
+            #     return(response.encode())
+            # else:
+            #     not_found = "400 NOT FOUND!"
+            #     status_line = f"HTTP/1.1 400 {not_found} \r\n"
+            #     response = status_line + "Connection: close\r\n"  + "\r\n"
+            #     return(response.encode())
+                
+                
+        
 
         
 
-        if os.path.exists(path) and not os.path.isdir(path): # don't serve directories
-            status_line = self.status_line(200)
-
-        #     # find out a file's MIME type
-        #     # if nothing is found, just send `text/html`
-            content_type = mimetypes.guess_type(path)[0] 
-
-            extra_headers = {'Content-Type': content_type}
-            response_headers = self.response_headers(extra_headers)
-
-            with open(path, 'rb') as f:
-                response_body = f.read()
-        else:
-            status_line = self.status_line(404)
-            response_headers = self.response_headers()
-            response_body = b'<h1>404 Not Found</h1>'
-
-        blank_line = b'\r\n'
-
-        response = b''.join([status_line, response_headers, blank_line, response_body])
-
-        return response
+        
 
       
     
     def handle(self):
         self.data = self.request.recv(1024).strip()
+       
         #store the parsed HTTP request in a variable
         request = HTTPRequest(self.data)
-
 
         try:
             #construct the handle method for the request method
@@ -162,8 +193,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
            pass
 
 
-
+        #handler(request)
         response = handler(request)
+        print(response)
         self.request.send(response)
 
       
