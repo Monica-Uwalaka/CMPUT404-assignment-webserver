@@ -86,148 +86,273 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
    
 
-    def handle_PUT(self, request):
-        path = request.request_uri # remove slash from URI
-
-        path_arr =  request.request_uri.split("/")
-        print(path_arr)
-        print(path)
-        #check if path exists 
-
-        if len(path_arr[1])> 0:
-            
-            if path_arr[-1] == '':
-                print("ddddd" + path)
-                content_type = mimetypes.guess_type(path)[0]
-
-                if path_arr[1] != "www" or content_type == None:
-                    
-                    not_found = "200 OK NOT FOUND!"
-                    status_line = f"HTTP/1.1 200 {not_found} \r\n"
-                    response = status_line + "Connection: close\r\n" + "\r\n"
-                    return(response.encode())
-
-            else:
-                content_type = mimetypes.guess_type(path)[0]
-                if content_type == "text/html" or  content_type == "text/css" :
-                    print(content_type)
-                    not_found = "405 OK NOT FOUND!"
-                    status_line = f"HTTP/1.1 405 {not_found} \r\n"
-                    response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                    return(response.encode())
-                else:
-                    print(content_type)
-                    not_found = "404 NOT FOUND!"
-                    status_line = f"HTTP/1.1 404 {not_found} \r\n"
-                    response = status_line + status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                    return(response.encode())
-                    
-                
+   
         
+    def get_200(self, path):
+        content_type = mimetypes.guess_type(path)[0]
+        not_found = "200 OK NOT FOUND!"
+        status_line = f"HTTP/1.1 200 {not_found} \r\n"
+        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
+        return(response.encode())
+
+    def get_404(self, path):
+        content_type = mimetypes.guess_type(path)[0]
+        not_found = "404 NOT FOUND!"
+        status_line = f"HTTP/1.1 404 {not_found} \r\n"
+        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
+        return(response.encode())
+
+
+    def get_405(self, path):
+        content_type = mimetypes.guess_type(path)[0]
+        not_found = "405 NOT FOUND!"
+        status_line = f"HTTP/1.1 405 {not_found} \r\n"
+        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
+        return(response.encode())
+
+    def get_301(self, path):
+        path = path + "index.html"
+        content_type = mimetypes.guess_type(path)[0]
+        not_found = "301 Moved Permanently!"
+        status_line = f"HTTP/1.1 301 {not_found} \r\n"
+        response = status_line + f"Location: {path}" + "\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
+        return(response.encode())
+
+    def secure(self, path):
+
+        if path.find("/.") == -1 and path.find("/..") == -1:
+            return True
+        else:
+            return False
+            
 
         
 
     
     def handle_GET(self, request):
 
-
         path = request.request_uri # remove slash from URI
 
-        path_arr =  request.request_uri.split("/")
-        print(path_arr)
-        print(path)
-        #check if path exists 
+        cpath = path.strip('/')
 
-        if len(path_arr[1])> 0:
-            
-            if path_arr[-1] == '' :
+        path = "www" + path
+
+       
+
+        if  self.secure(path):
+
+            if not cpath:
+                path = "www/index.html"
+                with open(path, 'rb') as f:
+                    message_body = f.read()
+                response = self.get_200(path)
+                print(response)
+                self.request.send(response)
+                self.request.send(message_body)
+                self.request.send(b"\r\n")
+
+          
+            if os.path.exists(path) :
                
-                if path_arr[1] != "www" :
-                    print("this type" + path)
-                    if path_arr[1] == "hardcode":
-                        path = "/index.html"
-                        print("this typeee" + path)
-                        content_type = mimetypes.guess_type(path)[0]
+                if os.path.isdir(path) or os.path.isdir(path + "/") :
 
-                        not_found = "200 OK NOT FOUND!"
-                        status_line = f"HTTP/1.1 200 {not_found} \r\n"
-                        response = status_line  + "\r\n" + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" +  "\r\n"
-                        return(response.encode())
-                    
-                    content_type = mimetypes.guess_type(path)[0]
-                    
-                    print(path)
-                    
-                    not_found = "200 OK NOT FOUND!"
-                    status_line = f"HTTP/1.1 200 {not_found} \r\n"
-                    response = status_line + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" + "\r\n" + f"Content-disposition: attatchment; filename= index.html" + "\r\n"
-                    return(response.encode())
+                    if cpath[-1] == "":
+                       
+                        path = path  + "/index.html"
+                        with open(path, 'rb') as f:
+                            message_body = f.read()
+                        response = self.get_301(path)
+                        self.request.send(response)
+                        self.request.send(b"\r\n")
 
+                    else:
+                        path = path  + "/index.html"
+                        print("path")
+                        with open(path, 'rb') as f:
+                            message_body = f.read()
+                        response = self.get_200(path)
+                        print(response)
+                        self.request.send(response)
+                        self.request.send(message_body)
+                        self.request.send(b"\r\n")
+                else:
+                    with open(path, 'rb') as f:
+                        message_body = f.read()
+                    response = self.get_200(path)
+                    print(response)
+                    self.request.send(response)
+                    self.request.send(message_body)
+                    self.request.send(b"\r\n")
+        
+        
+            else:
+                response = self.get_404(path)
+                print(response)
+                self.request.send(response)
+                self.request.send(b"\r\n")
+        else:
+            response = self.get_404(path)
+            print(response)
+            self.request.send(response)
+            self.request.send(b"\r\n")
 
-                    
+    def handle_PUT(self, request):
+        path = request.request_uri # remove slash from URI
+
+        cpath = path.strip('/')
+
+        path = "www" + path
+
+        if not cpath:
+            path = "www/index.html"
+            with open(path, 'rb') as f:
+                message_body = f.read()
+            response = self.get_200(path)
+            print(response)
+            self.request.send(response)
+            self.request.send(message_body)
+            self.request.send(b"\r\n")
+
+        
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                path = path + "index.html"
+            
+                print("path")
+                with open(path, 'rb') as f:
+                    message_body = f.read()
+                response = self.get_200(path)
+                print(response)
+                self.request.send(response)
+                self.request.send(message_body)
+                self.request.send(b"\r\n")
+            elif os.path.isdir(path + "/"):
+                redirect_path = path + "/"
+                response = self.get_301(redirect_path)
+                print(response)
+                self.request.send(response)
+                self.request.send(b"\r\n")
 
             else:
-                content_type = mimetypes.guess_type(path)[0]
-                if content_type != None:
+                if mimetypes.guess_type(path)[0] != "text/html":
+                        response = self.get_405(path)
+                        print(response)
+                        self.request.send(response)
+                        self.request.send(b"\r\n")
+                    
+                else:
+                    with open(path, 'rb') as f:
+                        message_body = f.read()
+                    response = self.get_200(path)
+                    print(response)
+                    self.request.send(response)
+                    self.request.send(message_body)
+                    self.request.send(b"\r\n")
+    
+       
+        else:
+            response = self.get_405(path)
+            print(response)
+            self.request.send(response)
+            self.request.send(b"\r\ n")
 
-                    if (path == "/deep.css") :
-                        print(content_type)
-                        not_found = "404 NOT FOUND!"
-                        status_line = f"HTTP/1.1 404 {not_found} \r\n"
-                        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
+        
+        
+        # path_arr =  request.request_uri.split("/")
+        # print(path_arr)
+        # print(path)
+        # #check if path exists 
+
+        # if len(path_arr[1])> 0:
+            
+        #     if path_arr[-1] == '' :
+               
+        #         if path_arr[1] != "www" :
+        #             print("this type" + path)
+        #             if path_arr[1] == "hardcode":
+        #                 path = "/index.html"
+        #                 print("this typeee" + path)
+        #                 content_type = mimetypes.guess_type(path)[0]
+
+        #                 not_found = "200 OK NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 200 {not_found} \r\n"
+        #                 response = status_line  + "\r\n" + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" +  "\r\n"
+        #                 return(response.encode())
+                    
+        #             content_type = mimetypes.guess_type(path)[0]
+                    
+        #             print(path)
+                    
+        #             not_found = "200 OK NOT FOUND!"
+        #             status_line = f"HTTP/1.1 200 {not_found} \r\n"
+        #             response = status_line + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" + "\r\n" + f"Content-disposition: attatchment; filename= index.html" + "\r\n"
+        #             return(response.encode())
 
 
-                    elif content_type == "text/html"  or content_type == "text/css" :
-                        print(content_type)
-                        not_found = "200 OK NOT FOUND!"
-                        status_line = f"HTTP/1.1 200 {not_found} \r\n"
-                        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
+                    
+
+        #     else:
+        #         content_type = mimetypes.guess_type(path)[0]
+        #         if content_type != None:
+
+        #             if (path == "/deep.css") :
+        #                 print(content_type)
+        #                 not_found = "404 NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
+        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
+
+
+        #             elif content_type == "text/html"  or content_type == "text/css" :
+        #                 print(content_type)
+        #                 not_found = "200 OK NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 200 {not_found} \r\n"
+        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
                     
                    
                     
-                    else:
-                        print(content_type)
-                        not_found = "404 NOT FOUND!"
-                        status_line = f"HTTP/1.1 404 {not_found} \r\n"
-                        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
+        #             else:
+        #                 print(content_type)
+        #                 not_found = "404 NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
+        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
                
-                else:
-                    if (path == "/deep/deep") :
-                        print(content_type)
-                        not_found = "404 NOT FOUND!"
-                        status_line = f"HTTP/1.1 404 {not_found} \r\n"
-                        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
-                    output = [x[0][4:] for x in os.walk("www/")]
-                    print(output)
-                    if path_arr[-1] in output:
-                        path = path + "/"
-                        content_type = mimetypes.guess_type(path)[0]
-                        not_found = "301 Moved Permanently!"
-                        status_line = f"HTTP/1.1 301 {not_found} \r\n"
-                        print(path)
-                        response = status_line  + f"Location: {path}" + "\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
+        #         else:
+        #             if (path == "/deep/deep") :
+        #                 print(content_type)
+        #                 not_found = "404 NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
+        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
+        #             output = [x[0][4:] for x in os.walk("www/")]
+        #             print(output)
+        #             if path_arr[-1] in output:
+        #                 path = path + "/"
+        #                 content_type = mimetypes.guess_type(path)[0]
+        #                 not_found = "301 Moved Permanently!"
+        #                 status_line = f"HTTP/1.1 301 {not_found} \r\n"
+        #                 print(path)
+        #                 response = status_line  + f"Location: {path}" + "\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
 
-                    else:
-                        print(content_type)
-                        not_found = "404 NOT FOUND!"
-                        status_line = f"HTTP/1.1 404 {not_found} \r\n"
-                        response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-                        return(response.encode())
+        #             else:
+        #                 print(content_type)
+        #                 not_found = "404 NOT FOUND!"
+        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
+        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
+        #                 return(response.encode())
 
 
 
               
-        else:
-            content_type = mimetypes.guess_type(path)[0]
-            not_found = "200 OK NOT FOUND!"
-            status_line = f"HTTP/1.1 200 {not_found} \r\n"
-            response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
-            return(response.encode())
+        # else:
+        #     content_type = mimetypes.guess_type(path)[0]
+        #     not_found = "200 OK NOT FOUND!"
+        #     status_line = f"HTTP/1.1 200 {not_found} \r\n"
+        #     response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
+        #     return(response.encode())
 
 
           
@@ -254,9 +379,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
 
         #handler(request)
-        response = handler(request)
-        print(response)
-        self.request.send(response)
+        handler(request)
+        # print(response)
+        # self.request.send(response)
 
       
         # print(self.request_method)
