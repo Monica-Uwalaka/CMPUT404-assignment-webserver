@@ -69,20 +69,6 @@ class HTTPRequest:
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
-
-    status_codes = {
-        200: "OK",
-        404: "Not Found",
-        501: "Not Implemented",
-    }
-
-    def status_line(self, status_code):
-        reason = self.status_codes[status_code]
-        status_line = 'HTTP/1.1 %s %s\r\n' % (status_code, reason)
-
-        # convert str to bytes
-        return status_line
-
     
    
 
@@ -128,7 +114,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         
 
-    
+    #FROM: https://bhch.github.io/posts/2017/11/writing-an-http-server-from-scratch/
     def handle_GET(self, request):
 
         path = request.request_uri # remove slash from URI
@@ -205,6 +191,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         if not cpath:
             path = "www/index.html"
+            #FROM:https://stackoverflow.com/users/1222951/aran-fey
+            #URI to question: https://stackoverflow.com/questions/53204752/how-do-i-read-a-text-file-as-a-string/53204836#53204836
             with open(path, 'rb') as f:
                 message_body = f.read()
             response = self.get_200(path)
@@ -258,108 +246,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
         
         
-        # path_arr =  request.request_uri.split("/")
-        # print(path_arr)
-        # print(path)
-        # #check if path exists 
-
-        # if len(path_arr[1])> 0:
-            
-        #     if path_arr[-1] == '' :
-               
-        #         if path_arr[1] != "www" :
-        #             print("this type" + path)
-        #             if path_arr[1] == "hardcode":
-        #                 path = "/index.html"
-        #                 print("this typeee" + path)
-        #                 content_type = mimetypes.guess_type(path)[0]
-
-        #                 not_found = "200 OK NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 200 {not_found} \r\n"
-        #                 response = status_line  + "\r\n" + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" +  "\r\n"
-        #                 return(response.encode())
-                    
-        #             content_type = mimetypes.guess_type(path)[0]
-                    
-        #             print(path)
-                    
-        #             not_found = "200 OK NOT FOUND!"
-        #             status_line = f"HTTP/1.1 200 {not_found} \r\n"
-        #             response = status_line + "Connection: close\r\n" + "\r\n" + f"Content-Type: {content_type}" + "\r\n" + f"Content-disposition: attatchment; filename= index.html" + "\r\n"
-        #             return(response.encode())
-
-
-                    
-
-        #     else:
-        #         content_type = mimetypes.guess_type(path)[0]
-        #         if content_type != None:
-
-        #             if (path == "/deep.css") :
-        #                 print(content_type)
-        #                 not_found = "404 NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
-        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-
-
-        #             elif content_type == "text/html"  or content_type == "text/css" :
-        #                 print(content_type)
-        #                 not_found = "200 OK NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 200 {not_found} \r\n"
-        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-                    
-                   
-                    
-        #             else:
-        #                 print(content_type)
-        #                 not_found = "404 NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
-        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-               
-        #         else:
-        #             if (path == "/deep/deep") :
-        #                 print(content_type)
-        #                 not_found = "404 NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
-        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-        #             output = [x[0][4:] for x in os.walk("www/")]
-        #             print(output)
-        #             if path_arr[-1] in output:
-        #                 path = path + "/"
-        #                 content_type = mimetypes.guess_type(path)[0]
-        #                 not_found = "301 Moved Permanently!"
-        #                 status_line = f"HTTP/1.1 301 {not_found} \r\n"
-        #                 print(path)
-        #                 response = status_line  + f"Location: {path}" + "\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-
-        #             else:
-        #                 print(content_type)
-        #                 not_found = "404 NOT FOUND!"
-        #                 status_line = f"HTTP/1.1 404 {not_found} \r\n"
-        #                 response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n"
-        #                 return(response.encode())
-
-
-
-              
-        # else:
-        #     content_type = mimetypes.guess_type(path)[0]
-        #     not_found = "200 OK NOT FOUND!"
-        #     status_line = f"HTTP/1.1 200 {not_found} \r\n"
-        #     response = status_line + "Connection: close\r\n" + f"Content-Type: {content_type}" + "\r\n" + "\r\n"
-        #     return(response.encode())
-
-
-          
-        
-
-        
-
         
 
       
@@ -370,11 +256,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
         #store the parsed HTTP request in a variable
         request = HTTPRequest(self.data)
 
+         #FROM: https://bhch.github.io/posts/2017/11/writing-an-http-server-from-scratch/
         try:
             #construct the handle method for the request method
             handler = getattr(self, "handle_%s" % request.request_method)
         except:
-           # handler = self.HTTP_501_handler
            pass
 
 
